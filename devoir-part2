@@ -1,0 +1,94 @@
+from ply import yacc
+from lexer import tokens
+
+
+
+def p_start(p):
+    '''start : eols STARTUML name EOL defs ENDUML eols'''
+    p[0] = ('start', p[3], p[5])
+
+def p_eols(p):
+    '''eols : EOL eols
+            | empty'''
+    p[0] = None
+def p_name(p):
+    '''name : ID
+            | empty'''
+    p[0] = p[1] if p[1] else None
+
+def p_defs(p):
+    '''defs : one_def EOL
+            | defs one_def EOL'''
+    if len(p) == 3:
+        p[0] = [p[1]]
+    else:
+        p[0] = p[1] + [p[2]]
+
+def p_one_def(p):
+    '''one_def : ACTOR def_act alias stereo
+               | ACTOR_TXT alias stereo
+               | USECASE def_uc alias stereo
+               | USE_CASE_TXT alias stereo
+               | var arrow var ucl_link
+               | var INHERIT var
+               | PACKAGE ID LBRACE defs RBRACE
+               | empty'''
+    if len(p) == 5:
+        p[0] = ('actor', p[2], p[3], p[4])
+    elif len(p) == 4 and p[1] == 'actor_txt':
+        p[0] = ('actor_txt', p[2], p[3])
+    elif len(p) == 6:
+        p[0] = ('package', p[2], p[4])
+    else:
+        p[0] = None
+
+def p_stereo(p):
+    '''stereo : STEREO
+              | empty'''
+    p[0] = p[1] if p[1] else None
+
+def p_def_act(p):
+    '''def_act : ID
+               | ACTOR_TXT
+               | STRING'''
+    p[0] = p[1]
+
+def p_def_uc(p):
+    '''def_uc : STRING'''
+    p[0] = p[1]
+
+def p_ucl_link(p):
+    '''ucl_link : COLON EXTENDS
+                | COLON INCLUDES
+                | COLON ID
+                | empty'''
+    if len(p) == 3:
+        p[0] = ('link', p[2])
+    else:
+        p[0] = None
+
+def p_arrow(p):
+    '''arrow : RIGHT_ARROW_1
+             | RIGHT_ARROW_2'''
+    p[0] = p[1]
+
+def p_var(p):
+    '''var : ID
+           | USE_CASE_TXT
+           | ACTOR_TXT'''
+    p[0] = p[1]
+
+def p_alias(p):
+    '''alias : AS ID
+             | empty'''
+    p[0] = p[2] if len(p) == 3 else None
+
+def p_empty(p):
+    '''empty :'''
+    p[0] = None
+
+def p_error(p):
+    if p:
+        raise SyntaxError(f"Syntax error at token {p.type} ({p.value}), line {p.lineno}")
+    else:
+        raise SyntaxError("Unexpected end of input")
